@@ -13,22 +13,44 @@ dotenv.config();
 
 const app = express();
 
-app.use(cors());
+// ✅ CORS configuration (important for production)
+const allowedOrigins = [
+  "http://localhost:3000",
+  "http://localhost:5173",
+  "https://goldapp-production-99bf.up.railway.app",
+];
+
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
+    credentials: true,
+  })
+);
+
 app.use(express.json());
 
-// Serve uploaded images
+// Serve uploaded images (if still using local uploads)
 app.use(
   "/uploads",
   express.static(path.join(process.cwd(), "uploads"))
 );
 
+// Routes
 bootstrap(app);
 
 const server = http.createServer(app);
 
+// Socket.io
 export const io = new Server(server, {
   cors: {
-    origin: "*",
+    origin: allowedOrigins,
+    credentials: true,
   },
 });
 
