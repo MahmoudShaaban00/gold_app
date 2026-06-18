@@ -2,31 +2,35 @@ import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
 import http from "http";
+import path from "path";
 import { Server } from "socket.io";
 
 import { connectDB } from "./config/dbconn.js";
 import { startTelegram } from "./services/telegram.js";
 import bootstrap from "./bootstarp/bootstrap.js";
 
-
 dotenv.config();
 
 const app = express();
 
 app.use(cors());
-app.use(express.json()); // قبل routes
+app.use(express.json());
+
+// Serve uploaded images
+app.use(
+  "/uploads",
+  express.static(path.join(process.cwd(), "uploads"))
+);
 
 bootstrap(app);
 
 const server = http.createServer(app);
-
 
 export const io = new Server(server, {
   cors: {
     origin: "*",
   },
 });
-
 
 connectDB();
 
