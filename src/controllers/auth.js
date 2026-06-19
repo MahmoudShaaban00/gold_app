@@ -6,23 +6,31 @@ export const login = async (req, res) => {
   try {
     const { name, phone } = req.body;
 
-    if (!phone) {
+    if (!name || !phone) {
       return res.status(400).json({
         success: false,
-        message: "Phone is required",
+        message: "Name and phone are required",
       });
     }
 
     let user = await User.findOne({ phone });
 
+    // لو الرقم موجود والاسم مختلف
+    if (user && user.name !== name) {
+      return res.status(400).json({
+        success: false,
+        message: "This phone number belongs to another user",
+      });
+    }
+
+    // إنشاء مستخدم جديد إذا لم يكن موجوداً
     if (!user) {
       user = await User.create({
-        name: name || "unknown",
+        name,
         phone,
       });
     }
 
-    // 🔥 SEND OTP AUTOMATICALLY
     await sendTelegramCode(phone);
 
     const token = jwt.sign(
