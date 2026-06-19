@@ -1,31 +1,35 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8" />
   <title>Gold Price Live</title>
 </head>
 <body>
 
-  <h1>Gold Price Live</h1>
+<h1>Gold Price</h1>
+<h2 id="price">Waiting...</h2>
+<p id="text"></p>
 
-  <h2 id="price">Waiting...</h2>
+<script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
 
-  <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
+<script>
+  const socket = io("http://127.0.0.1:5000", {
+    transports: ["websocket", "polling"]
+  });
 
-  <script>
-    const socket = io("http://localhost:5000");
+  socket.on("connect", () => {
+    console.log("Connected ✔");
+  });
 
-    socket.on("connect", () => {
-      console.log("Connected");
-    });
+  socket.on("goldPrice", (data) => {
+    console.log("DATA:", data);
 
-    socket.on("goldPrice", (data) => {
-      console.log(data);
+    document.getElementById("price").innerText =
+      data.price + " USD";
 
-      document.getElementById("price").innerText =
-        data.price;
-    });
-  </script>
+    document.getElementById("text").innerText =
+      data.text;
+  });
+</script>
 
 </body>
 </html>

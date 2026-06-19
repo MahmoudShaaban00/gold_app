@@ -1,89 +1,164 @@
 import { TelegramClient } from "telegram";
 import { StringSession } from "telegram/sessions/index.js";
-import input from "input";
-import { io } from "../server.js";
+import { Api } from "telegram";
+import { User } from "../models/user.js";
+import { getIO } from "./socket.js";
 
-export const startTelegram = async () => {
+let client = null;
+
+// ==========================
+// INIT CLIENT (for login only)
+// ==========================
+const getClient = async () => {
   const apiId = Number(process.env.API_ID);
   const apiHash = process.env.API_HASH;
 
-  const client = new TelegramClient(
-    new StringSession(""),
-    apiId,
-    apiHash,
+  if (!client) {
+    client = new TelegramClient(
+      new StringSession(""),
+      apiId,
+      apiHash,
+      { connectionRetries: 5 }
+    );
+
+    await client.connect();
+  }
+
+  return client;
+};
+
+
+
+// ==========================
+// SEND CODE
+// ==========================
+export const sendTelegramCode = async (phone) => {
+  const tg = await getClient();
+
+  const result = await tg.sendCode(
     {
-      connectionRetries: 5,
+      apiId: Number(process.env.API_ID),
+      apiHash: process.env.API_HASH,
+    },
+    phone
+  );
+
+  await User.findOneAndUpdate(
+    { phone },
+    {
+      phone,
+      otp: {
+        phoneCodeHash: result.phoneCodeHash,
+        expiresAt: new Date(Date.now() + 5 * 60 * 1000),
+      },
+    },
+    { upsert: true, new: true }
+  );
+
+  return {
+    success: true,
+    message: "Code sent",
+  };
+};
+
+
+
+// ==========================
+// VERIFY CODE + SAVE SESSION
+// ==========================
+export const verifyTelegramCode = async (phone, code) => {
+  const tg = await getClient();
+
+  const user = await User.findOne({ phone });
+
+  if (!user?.otp?.phoneCodeHash) {
+    throw new Error("OTP not found");
+  }
+
+  if (user.otp.expiresAt < new Date()) {
+    throw new Error("OTP expired");
+  }
+
+  // LOGIN
+  await tg.invoke(
+    new Api.auth.SignIn({
+      phoneNumber: phone,
+      phoneCodeHash: user.otp.phoneCodeHash,
+      phoneCode: code,
+    })
+  );
+
+  // 🔥 GENERATE SESSION
+  const sessionString = tg.session.save();
+
+  // 💾 SAVE TO DB
+  await User.updateOne(
+    { phone },
+    {
+      $unset: { otp: 1 },
+      telegramSession: sessionString,
     }
   );
 
-  await client.start({
-    phoneNumber: async () => await input.text("Phone: "),
-    password: async () => await input.text("Password (if any): "),
-    phoneCode: async () => await input.text("Code: "),
-    onError: (err) => console.log("Telegram Error:", err),
-  });
+  return {
+    success: true,
+    session: sessionString,
+  };
+};
 
-  console.log("✅ Telegram Connected");
 
-  const channel = await client.getEntity("goldratepric2020");
 
-  console.log("📡 Connected to:", channel.title);
+// ==========================
+// LIVE MESSAGES (REAL TIME)
+// ==========================
+export const startLiveMessages = async () => {
+  const user = await User.findOne({ telegramSession: { $ne: null } });
 
-  let lastMessageId = 0;
-
-  // أول مرة نجيب آخر رسالة فقط
-  const firstMessages = await client.getMessages(channel, {
-    limit: 1,
-  });
-
-  if (firstMessages.length > 0) {
-    lastMessageId = firstMessages[0].id;
+  if (!user) {
+    throw new Error("No Telegram session found in DB");
   }
 
-  console.log("🚀 Start Listening For New Prices...");
+  const tg = new TelegramClient(
+    new StringSession(user.telegramSession),
+    Number(process.env.API_ID),
+    process.env.API_HASH,
+    { connectionRetries: 5 }
+  );
 
-  setInterval(async () => {
-    try {
-      const messages = await client.getMessages(channel, {
-        limit: 1,
-      });
+  await tg.connect();
 
-      if (!messages.length) return;
+  const chat = await tg.getEntity(process.env.CHANNEL_USERNAME);
 
-      const msg = messages[0];
+  const { NewMessage } = await import("telegram/events/index.js");
 
-      // لو نفس الرسالة القديمة
-      if (msg.id === lastMessageId) return;
+  console.log("📡 Telegram listening started...");
 
-      lastMessageId = msg.id;
+  tg.addEventHandler(
+    (event) => {
+      try {
+        const msg = event.message?.message;
+        if (!msg) return;
 
-      const text = msg.message || "";
+        console.log("📩 Telegram:", msg);
 
-      console.log("\n📩 NEW MESSAGE:");
-      console.log(text);
+        const match = msg.match(/(\d+(\.\d+)?)/);
+        if (!match) return;
 
-      // استخراج السعر
-      const match = text.match(/(\d+\.\d+)/);
+        const price = Number(match[1]);
 
-      if (!match) return;
+        getIO().emit("goldPrice", {
+          price,
+          text: msg,
+          time: new Date(),
+        });
+      } catch (err) {
+        console.error("Telegram handler error:", err);
+      }
+    },
+    new NewMessage({
+      chats: [chat.id],
+    })
+  );
 
-      const price = Number(match[1]);
-
-      console.log("💰 GOLD PRICE:", price);
-
-      // إرسال للفرونت
-      io.emit("goldPrice", {
-        price,
-        text,
-        messageId: msg.id,
-        time: new Date(),
-      });
-
-      console.log("📤 Sent To Frontend");
-    } catch (err) {
-      console.error("Telegram Polling Error:", err.message);
-    }
-  }, 1000); // كل ثانية
-
-  return client;
+  console.log("🔥 Live Telegram started successfully");
 };

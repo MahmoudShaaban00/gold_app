@@ -54,3 +54,28 @@ export const getGoldPrice = async (req, res) => {
     });
   }
 };
+
+export const deleteGoldPrice = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const goldPrice = await GoldPrice.findByIdAndDelete(id);
+
+    if (!goldPrice) {
+      return res.status(404).json({
+        success: false,
+        message: "سعر الذهب غير موجود",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "تم حذف سعر الذهب بنجاح",
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};

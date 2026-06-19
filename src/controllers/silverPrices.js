@@ -61,3 +61,28 @@ export const getSilverPrices = async (req, res) => {
     });
   }
 };
+
+export const deleteSilverPrice = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const silverPrice = await SilverPrice.findByIdAndDelete(id);
+
+    if (!silverPrice) {
+      return res.status(404).json({
+        success: false,
+        message: "سعر الفضة غير موجود",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "تم حذف سعر الفضة بنجاح",
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};

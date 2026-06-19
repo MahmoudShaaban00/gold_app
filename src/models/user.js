@@ -10,9 +10,16 @@ const userSchema = new mongoose.Schema(
       unique: true,
     },
 
-    otp: String,
+    otp: {
+      phoneCodeHash: String,
+      expiresAt: Date,
+    },
 
-    otpExpire: Date,
+      telegramSession: {
+    type: String,
+    default: null,
+  },
+
   },
   {
     timestamps: true,
