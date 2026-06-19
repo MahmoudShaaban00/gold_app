@@ -55,6 +55,31 @@ export const getGoldPrice = async (req, res) => {
   }
 };
 
+export const getGoldPriceById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const goldPrice = await GoldPrice.findById(id);
+
+    if (!goldPrice) {
+      return res.status(404).json({
+        success: false,
+        message: "سعر الذهب غير موجود",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: goldPrice,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
 export const deleteGoldPrice = async (req, res) => {
   try {
     const { id } = req.params;

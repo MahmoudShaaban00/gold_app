@@ -62,6 +62,31 @@ export const getSilverPrices = async (req, res) => {
   }
 };
 
+export const getSilverPriceById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const silverPrice = await SilverPrice.findById(id);
+
+    if (!silverPrice) {
+      return res.status(404).json({
+        success: false,
+        message: "سعر الفضة غير موجود",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: silverPrice,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
 export const deleteSilverPrice = async (req, res) => {
   try {
     const { id } = req.params;
