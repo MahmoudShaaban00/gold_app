@@ -42,16 +42,7 @@ startLiveMessages()
   .then(() => console.log("🔥 Telegram listener started"))
   .catch((err) => console.error("Telegram error:", err));
 
-// ==========================
-// TEST EMIT (REMOVE IN PROD)
-// ==========================
-setInterval(() => {
-  getIO().emit("goldPrice", {
-    price: Math.floor(Math.random() * 3000),
-    text: "TEST PRICE",
-    time: new Date(),
-  });
-}, 3000);
+
 
 // ==========================
 // START SERVER
