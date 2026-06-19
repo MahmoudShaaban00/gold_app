@@ -10,7 +10,7 @@ const categorySchema = new mongoose.Schema(
     },
     type: {
       type: String,
-      enum: ["gold", "silver", "used gold","used silver"],
+      enum: ["gold", "silver", "used gold","used silver","Coins"],
       required: true,
     },
   },

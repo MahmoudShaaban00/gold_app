@@ -69,6 +69,53 @@ export const getCategoryById = async (req, res) => {
   }
 };
 
+export const updateCategory = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, type } = req.body;
+
+    const category = await Category.findById(id);
+
+    if (!category) {
+      return res.status(404).json({
+        success: false,
+        message: "القسم غير موجود",
+      });
+    }
+
+    // التحقق من عدم تكرار الاسم
+    if (name) {
+      const exists = await Category.findOne({
+        name,
+        _id: { $ne: id },
+      });
+
+      if (exists) {
+        return res.status(400).json({
+          success: false,
+          message: "اسم القسم موجود بالفعل",
+        });
+      }
+    }
+
+    category.name = name || category.name;
+    category.type = type || category.type;
+
+    await category.save();
+
+    res.status(200).json({
+      success: true,
+      message: "تم تحديث القسم بنجاح",
+      data: category,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
 export const deleteCategory = async (req, res) => {
   try {
     const { id } = req.params;
