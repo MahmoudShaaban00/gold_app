@@ -129,6 +129,7 @@ export const startLiveMessages = async () => {
     );
 
     await tg.connect();
+    await tg.getDialogs();
 
     console.log("✅ Telegram connected");
 
@@ -140,19 +141,6 @@ export const startLiveMessages = async () => {
       throw new Error("Telegram session expired");
     }
 
-    const dialogs = await tg.getDialogs();
-
-    console.log("========== TELEGRAM CHATS ==========");
-
-    dialogs.forEach((dialog) => {
-      console.log({
-        id: dialog.id.toString(),
-        title: dialog.title,
-      });
-    });
-
-    console.log("===================================");
-
     const chat = await tg.getEntity(
       process.env.CHANNEL_USERNAME
     );
@@ -160,6 +148,9 @@ export const startLiveMessages = async () => {
     console.log("📢 Listening Chat:", {
       id: chat.id.toString(),
       title: chat.title,
+      className: chat.className,
+      broadcast: chat.broadcast,
+      megagroup: chat.megagroup,
     });
 
     // ==========================
@@ -177,86 +168,76 @@ export const startLiveMessages = async () => {
         date: msg.date,
       }));
 
-    console.log("===== LAST 10 MESSAGES =====");
-
-    history.forEach((msg) => {
-      console.log(msg.text);
-    });
-
-    console.log("============================");
-
-    // send old messages
     getIO().emit("telegramHistory", history);
 
-    // extract prices from history
-    history.forEach((msg) => {
-      const match = msg.text.match(/(\d+(\.\d+)?)/);
-
-      if (match) {
-        getIO().emit("goldPrice", {
-          price: Number(match[1]),
-          text: msg.text,
-          time: msg.date,
-        });
-      }
-    });
-
-    const { NewMessage } = await import(
-      "telegram/events/index.js"
-    );
-
-    // ==========================
-    // LISTEN NEW MESSAGES
-    // ==========================
-    tg.addEventHandler(
-      async (event) => {
-        try {
-          const message = event.message;
-
-          if (!message) return;
-
-          const text = message.message;
-
-          console.log("📩 NEW MESSAGE:");
-          console.log(text);
-
-          getIO().emit("telegramMessage", {
-            id: message.id,
-            text,
-            date: message.date,
-          });
-
-          const match =
-            text?.match(/(\d+(\.\d+)?)/);
-
-          if (match) {
-            const price = Number(match[1]);
-
-            getIO().emit("goldPrice", {
-              price,
-              text,
-              time: new Date(),
-            });
-
-            console.log(
-              "💰 Gold Price Sent:",
-              price
-            );
-          }
-        } catch (err) {
-          console.error(
-            "Message Handler Error:",
-            err
-          );
-        }
-      },
-      new NewMessage({
-        chats: [chat.id],
-      })
-    );
+    let lastMessageId =
+      oldMessages.length > 0 ? oldMessages[0].id : 0;
 
     console.log(
-      "🔥 Waiting for new messages..."
+      "📌 Last Message ID:",
+      lastMessageId
+    );
+
+    // ==========================
+    // POLLING FOR NEW MESSAGES
+    // ==========================
+    setInterval(async () => {
+      try {
+        const messages = await tg.getMessages(chat, {
+          limit: 1,
+        });
+
+        if (!messages.length) return;
+
+        const msg = messages[0];
+
+        if (msg.id === lastMessageId) {
+          return;
+        }
+
+        lastMessageId = msg.id;
+
+        console.log("📩 NEW MESSAGE:");
+        console.log(msg.message);
+
+        const payload = {
+          id: msg.id,
+          text: msg.message,
+          date: msg.date,
+        };
+
+        getIO().emit(
+          "telegramMessage",
+          payload
+        );
+
+        const match =
+          msg.message?.match(/(\d+(\.\d+)?)/);
+
+        if (match) {
+          const price = Number(match[1]);
+
+          getIO().emit("goldPrice", {
+            price,
+            text: msg.message,
+            time: msg.date,
+          });
+
+          console.log(
+            "💰 Gold Price Sent:",
+            price
+          );
+        }
+      } catch (error) {
+        console.error(
+          "Polling Error:",
+          error.message
+        );
+      }
+    }, 1000);
+
+    console.log(
+      "🔥 Telegram polling started"
     );
 
     return tg;
@@ -265,6 +246,7 @@ export const startLiveMessages = async () => {
       "Telegram Listener Error:",
       error
     );
+
     throw error;
   }
 };

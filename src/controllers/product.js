@@ -7,12 +7,15 @@ export const createProduct = async (req, res) => {
     const {
       name,
       category,
+      karat,
       weight,
       workmanship,
+      cashback,
     } = req.body;
 
     if (!req.file) {
       return res.status(400).json({
+        success: false,
         message: "Image is required",
       });
     }
@@ -20,9 +23,11 @@ export const createProduct = async (req, res) => {
     const product = await Product.create({
       name,
       category,
+      karat,
       weight,
       workmanship,
-      image: req.file.path, // Cloudinary URL
+      cashback,
+      image: req.file.path,
     });
 
     res.status(201).json({
@@ -31,6 +36,7 @@ export const createProduct = async (req, res) => {
     });
   } catch (error) {
     res.status(500).json({
+      success: false,
       message: error.message,
     });
   }

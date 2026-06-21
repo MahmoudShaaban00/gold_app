@@ -13,12 +13,23 @@ const productSchema = new mongoose.Schema(
       required: true,
     },
 
+    karat: {
+      type: Number,
+      enum: [18, 21, 24],
+      required: true,
+    },
+
     weight: {
       type: Number,
       required: true,
     },
 
     workmanship: {
+      type: Number,
+      default: 0,
+    },
+
+    cashback: {
       type: Number,
       default: 0,
     },

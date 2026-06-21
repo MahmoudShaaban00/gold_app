@@ -1,35 +1,44 @@
 import { SilverPrice } from "../models/silverPrice.js";
 
+// ======================
+// Create Silver Price
+// ======================
 export const createSilverPrice = async (req, res) => {
   try {
-    const { silver925Buy, silver925Sell } = req.body;
+    const { silver1000Buy, silver1000Sell } = req.body;
 
-    if (!silver925Buy || !silver925Sell) {
+    if (!silver1000Buy || !silver1000Sell) {
       return res.status(400).json({
-        message: "يجب إدخال سعر 925 شراء وبيع",
+        success: false,
+        message: "يجب إدخال سعر الفضة 1000 شراء وبيع",
       });
     }
 
-    // الحسابات
-    const silver1000Buy = Number(
-      ((silver925Buy * 1000) / 925).toFixed(2)
-    );
-    const silver1000Sell = Number(
-      ((silver925Sell * 1000) / 925).toFixed(2)
+    // 925
+    const silver925Buy = Number(
+      ((silver1000Buy * 925) / 1000).toFixed(2)
     );
 
-    const silver800Buy = Number(
-      ((silver925Buy * 800) / 925).toFixed(2)
+    const silver925Sell = Number(
+      ((silver1000Sell * 925) / 1000).toFixed(2)
     );
+
+    // 800
+    const silver800Buy = Number(
+      ((silver1000Buy * 800) / 1000).toFixed(2)
+    );
+
     const silver800Sell = Number(
-      ((silver925Sell * 800) / 925).toFixed(2)
+      ((silver1000Sell * 800) / 1000).toFixed(2)
     );
 
     const data = await SilverPrice.create({
-      silver925Buy,
-      silver925Sell,
       silver1000Buy,
       silver1000Sell,
+
+      silver925Buy,
+      silver925Sell,
+
       silver800Buy,
       silver800Sell,
     });
@@ -40,11 +49,15 @@ export const createSilverPrice = async (req, res) => {
     });
   } catch (error) {
     res.status(500).json({
+      success: false,
       message: error.message,
     });
   }
 };
 
+// ======================
+// Get All Prices
+// ======================
 export const getSilverPrices = async (req, res) => {
   try {
     const data = await SilverPrice.find().sort({
@@ -53,15 +66,20 @@ export const getSilverPrices = async (req, res) => {
 
     res.status(200).json({
       success: true,
+      count: data.length,
       data,
     });
   } catch (error) {
     res.status(500).json({
+      success: false,
       message: error.message,
     });
   }
 };
 
+// ======================
+// Get Price By ID
+// ======================
 export const getSilverPriceById = async (req, res) => {
   try {
     const { id } = req.params;
@@ -87,6 +105,78 @@ export const getSilverPriceById = async (req, res) => {
   }
 };
 
+// ======================
+// Update Price
+// ======================
+export const updateSilverPrice = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { silver1000Buy, silver1000Sell } = req.body;
+
+    if (!silver1000Buy || !silver1000Sell) {
+      return res.status(400).json({
+        success: false,
+        message: "يجب إدخال سعر الفضة 1000 شراء وبيع",
+      });
+    }
+
+    const silver925Buy = Number(
+      ((silver1000Buy * 925) / 1000).toFixed(2)
+    );
+
+    const silver925Sell = Number(
+      ((silver1000Sell * 925) / 1000).toFixed(2)
+    );
+
+    const silver800Buy = Number(
+      ((silver1000Buy * 800) / 1000).toFixed(2)
+    );
+
+    const silver800Sell = Number(
+      ((silver1000Sell * 800) / 1000).toFixed(2)
+    );
+
+    const silverPrice = await SilverPrice.findByIdAndUpdate(
+      id,
+      {
+        silver1000Buy,
+        silver1000Sell,
+
+        silver925Buy,
+        silver925Sell,
+
+        silver800Buy,
+        silver800Sell,
+      },
+      {
+        new: true,
+        runValidators: true,
+      }
+    );
+
+    if (!silverPrice) {
+      return res.status(404).json({
+        success: false,
+        message: "سعر الفضة غير موجود",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "تم تحديث السعر بنجاح",
+      data: silverPrice,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+// ======================
+// Delete Price
+// ======================
 export const deleteSilverPrice = async (req, res) => {
   try {
     const { id } = req.params;
