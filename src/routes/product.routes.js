@@ -2,16 +2,16 @@ import { Router } from "express";
 import { createProduct, getProducts,getProductById,deleteProduct,} from "../controllers/product.js";
 
 import { upload } from "../middlewares/upload.js";
-import { authMiddleware } from "../middlewares/auth.middleware.js";
+import { authMiddleware , adminMiddleware } from "../middlewares/auth.middleware.js";
 
 const router = Router();
 console.log("Product Routes Loaded");
 
-router.post("/", authMiddleware, upload.single("image"), createProduct);
+router.post("/",authMiddleware, adminMiddleware, upload.single("image"), createProduct);
 router.get("/", authMiddleware, getProducts);
 
 router.get("/:id", authMiddleware, getProductById);
 
-router.delete("/:id", authMiddleware, deleteProduct);
+router.delete("/:id", authMiddleware, adminMiddleware, deleteProduct);
 
 export default router;
