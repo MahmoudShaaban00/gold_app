@@ -15,7 +15,6 @@ export const login = async (req, res) => {
 
     let user = await User.findOne({ phone });
 
-    // لو الرقم موجود والاسم مختلف
     if (user && user.name !== name) {
       return res.status(400).json({
         success: false,
@@ -23,18 +22,51 @@ export const login = async (req, res) => {
       });
     }
 
-    // إنشاء مستخدم جديد إذا لم يكن موجوداً
     if (!user) {
       user = await User.create({
         name,
         phone,
+        role:
+          phone === "01027070200" &&
+          name === "عمرو العربى"
+            ? "admin"
+            : "user",
       });
     }
 
+    // Admin Login بدون OTP
+    if (
+      user.phone === "01027070200" &&
+      user.name === "عمرو العربى"
+    ) {
+      user.role = "admin";
+      await user.save();
+
+      const token = jwt.sign(
+        {
+          userId: user._id,
+          role: "admin",
+        },
+        process.env.JWT_SECRET,
+        { expiresIn: "7d" }
+      );
+
+      return res.status(200).json({
+        success: true,
+        message: "Admin login successful",
+        token,
+        user,
+      });
+    }
+
+    // باقي المستخدمين يرسل لهم OTP
     await sendTelegramCode(phone);
 
     const token = jwt.sign(
-      { userId: user._id },
+      {
+        userId: user._id,
+        role: user.role,
+      },
       process.env.JWT_SECRET,
       { expiresIn: "7d" }
     );
@@ -51,4 +83,4 @@ export const login = async (req, res) => {
       message: error.message,
     });
   }
-};
+}
