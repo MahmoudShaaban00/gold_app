@@ -42,7 +42,6 @@ export const createProduct = async (req, res) => {
   }
 };
 
-
 export const getProducts = async (req, res) => {
   try {
     const products = await Product.find()
@@ -102,6 +101,54 @@ export const deleteProduct = async (req, res) => {
     });
   } catch (error) {
     res.status(500).json({
+      message: error.message,
+    });
+  }
+};
+
+export const updateProduct = async (req, res) => {
+  try {
+    const {
+      name,
+      category,
+      karat,
+      weight,
+      workmanship,
+      cashback,
+    } = req.body;
+
+    const product = await Product.findById(req.params.id);
+
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        message: "Product not found",
+      });
+    }
+
+    product.name = name || product.name;
+    product.category = category || product.category;
+    product.karat = karat || product.karat;
+    product.weight = weight || product.weight;
+    product.workmanship =
+      workmanship || product.workmanship;
+    product.cashback = cashback || product.cashback;
+
+    // Update image if uploaded
+    if (req.file) {
+      product.image = req.file.path;
+    }
+
+    await product.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Product updated successfully",
+      data: product,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
       message: error.message,
     });
   }
