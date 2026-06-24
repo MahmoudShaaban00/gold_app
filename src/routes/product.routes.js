@@ -8,9 +8,9 @@ const router = Router();
 console.log("Product Routes Loaded");
 
 router.post("/",authMiddleware, adminMiddleware, upload.single("image"), createProduct);
-router.get("/", authMiddleware, adminMiddleware, getProducts);
+router.get("/", authMiddleware, getProducts);
 
-router.get("/:id", authMiddleware, adminMiddleware, getProductById);
+router.get("/:id", authMiddleware, getProductById);
 
 router.delete("/:id", authMiddleware, adminMiddleware, deleteProduct);
 

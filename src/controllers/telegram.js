@@ -39,11 +39,14 @@ export const verifyCode = async (req, res) => {
       });
     }
 
-    const result = await verifyTelegramCode(phone, code);
+    await verifyTelegramCode(phone, code);
 
-    res.json(result);
+    return res.status(200).json({
+      success: true,
+      message: "Telegram verified successfully",
+    });
   } catch (err) {
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: err.message,
     });

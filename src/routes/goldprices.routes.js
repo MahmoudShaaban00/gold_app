@@ -5,8 +5,8 @@ import {authMiddleware , adminMiddleware} from "../middlewares/auth.middleware.j
 const router = Router();
 
 router.post("/", authMiddleware, adminMiddleware, createGoldPrice);
-router.get("/", authMiddleware, adminMiddleware, getGoldPrice);
-router.get("/:id", authMiddleware, adminMiddleware, getGoldPriceById);
+router.get("/", authMiddleware, getGoldPrice);
+router.get("/:id", authMiddleware, getGoldPriceById);
 router.delete("/:id", authMiddleware, adminMiddleware, deleteGoldPrice);
 
 export default router;
