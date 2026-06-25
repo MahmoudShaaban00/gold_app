@@ -3,6 +3,7 @@ import { StringSession } from "telegram/sessions/index.js";
 import { Api } from "telegram";
 import { User } from "../models/user.js";
 import { getIO } from "./socket.js";
+import { NewMessage } from "telegram/events/index.js";
 
 let client = null;
 
@@ -109,6 +110,9 @@ export const verifyTelegramCode = async (phone, code) => {
 // ==========================
 // LIVE TELEGRAM MESSAGES
 // ==========================
+// ==========================
+// LIVE TELEGRAM MESSAGES
+// ==========================
 export const startLiveMessages = async () => {
   try {
     const user = await User.findOne({
@@ -129,22 +133,26 @@ export const startLiveMessages = async () => {
     );
 
     await tg.connect();
-    await tg.getDialogs();
-
-    console.log("✅ Telegram connected");
 
     const authorized = await tg.isUserAuthorized();
-
-    console.log("Authorized:", authorized);
 
     if (!authorized) {
       throw new Error("Telegram session expired");
     }
 
+    const me = await tg.getMe();
+
+    console.log("👤 Logged User:", {
+      id: me.id,
+      username: me.username,
+      firstName: me.firstName,
+    });
+
     const chat = await tg.getEntity(
       process.env.CHANNEL_USERNAME
     );
 
+    console.log("✅ Telegram connected");
     console.log("📢 Listening Chat:", {
       id: chat.id.toString(),
       title: chat.title,
@@ -179,7 +187,7 @@ export const startLiveMessages = async () => {
     );
 
     // ==========================
-    // POLLING FOR NEW MESSAGES
+    // POLLING EVERY 5 SECONDS
     // ==========================
     setInterval(async () => {
       try {
@@ -199,6 +207,11 @@ export const startLiveMessages = async () => {
 
         console.log("📩 NEW MESSAGE:");
         console.log(msg.message);
+
+        console.log(
+          "Connected Clients:",
+          getIO().engine.clientsCount
+        );
 
         const payload = {
           id: msg.id,
@@ -234,10 +247,10 @@ export const startLiveMessages = async () => {
           error.message
         );
       }
-    }, 1000);
+    }, 5000);
 
     console.log(
-      "🔥 Telegram polling started"
+      "🔥 Telegram polling started (5s)"
     );
 
     return tg;
