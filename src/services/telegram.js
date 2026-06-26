@@ -4,6 +4,7 @@ import { Api } from "telegram";
 import { User } from "../models/user.js";
 import { getIO } from "./socket.js";
 import { NewMessage } from "telegram/events/index.js";
+import { TelegramCache } from "../models/TelegramCache.js";
 
 let client = null;
 
@@ -219,28 +220,47 @@ export const startLiveMessages = async () => {
           date: msg.date,
         };
 
-        getIO().emit(
-          "telegramMessage",
-          payload
-        );
+        getIO().emit("telegramMessage", payload);
 
-        const match =
-          msg.message?.match(/(\d+(\.\d+)?)/);
+        const match = msg.message?.match(/(\d+(\.\d+)?)/);
+
+        let price = null;
 
         if (match) {
-          const price = Number(match[1]);
+          price = Number(match[1]);
 
           getIO().emit("goldPrice", {
             price,
             text: msg.message,
             time: msg.date,
           });
-
-          console.log(
-            "💰 Gold Price Sent:",
-            price
-          );
         }
+
+        await TelegramCache.findOneAndUpdate(
+          {},
+          {
+            lastMessageId: msg.id,
+            lastMessage: msg.message,
+            lastPrice: price,
+            lastDate: msg.date,
+          },
+          {
+            upsert: true,
+            new: true,
+          }
+        );
+
+        console.log(
+          "✅ Cache updated:",
+          {
+            lastMessageId: msg.id,
+            lastMessage: msg.message,
+            lastPrice: price,
+            lastDate: msg.date,
+          }
+        );
+
+        
       } catch (error) {
         console.error(
           "Polling Error:",
