@@ -214,41 +214,46 @@ export const startLiveMessages = async () => {
           getIO().engine.clientsCount
         );
 
-        const payload = {
-          id: msg.id,
-          text: msg.message,
-          date: msg.date,
-        };
+       // استخراج السعر فقط من رسائل Gold price
+const text = msg.message?.trim();
 
-        getIO().emit("telegramMessage", payload);
+const match = text.match(/Gold price:\s*[♦️🔹]?\s*(\d+(?:\.\d+)?)/i);
 
-        const match = msg.message?.match(/(\d+(\.\d+)?)/);
+// إذا لم تكن رسالة سعر، تجاهلها
+if (!match) {
+  console.log("🚫 Advertisement or non-price message ignored");
+  return;
+}
 
-        let price = null;
+const price = parseFloat(match[1]);
 
-        if (match) {
-          price = Number(match[1]);
+const payload = {
+  id: msg.id,
+  price,
+  date: msg.date,
+};
 
-          getIO().emit("goldPrice", {
-            price,
-            text: msg.message,
-            time: msg.date,
-          });
-        }
+getIO().emit("telegramMessage", payload);
 
-        await TelegramCache.findOneAndUpdate(
-          {},
-          {
-            lastMessageId: msg.id,
-            lastMessage: msg.message,
-            lastPrice: price,
-            lastDate: msg.date,
-          },
-          {
-            upsert: true,
-            new: true,
-          }
-        );
+getIO().emit("goldPrice", {
+  price,
+  time: msg.date,
+});
+
+await TelegramCache.findOneAndUpdate(
+  {},
+  {
+    lastMessageId: msg.id,
+    lastPrice: price,
+    lastDate: msg.date,
+  },
+  {
+    upsert: true,
+    new: true,
+  }
+);
+
+console.log("✅ New Gold Price:", price);
 
         console.log(
           "✅ Cache updated:",
