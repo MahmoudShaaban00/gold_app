@@ -10,7 +10,9 @@ import cors from "cors";
 import http from "http";
 
 import { connectDB } from "./config/dbconn.js";
-import telegramRoutes from "./routes/telegramcache.routes.js";
+import bootstrap from "./bootstarp/bootstrap.js";
+
+import { initSocket, getIO } from "./services/socket.js";
 import { startLiveMessages } from "./services/telegram.js";
 
 const app = express();
@@ -19,37 +21,34 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+bootstrap(app);
+
+const server = http.createServer(app);
+
 // ==========================
-// DB CONNECT
+// SOCKET INIT
+// ==========================
+initSocket(server);
+
+// ==========================
+// DB
 // ==========================
 connectDB();
 
 // ==========================
-// ROUTES (IMPORTANT)
+// START TELEGRAM
 // ==========================
-app.use("/api/cache", telegramRoutes);
+startLiveMessages()
+  .then(() => console.log("🔥 Telegram listener started"))
+  .catch((err) => console.error("Telegram error:", err));
+
+
 
 // ==========================
-// TEST ROUTE
-// ==========================
-app.get("/test", (req, res) => {
-  res.json({ ok: true });
-});
-
-// ==========================
-// SERVER
+// START SERVER
 // ==========================
 const PORT = process.env.PORT || 5000;
 
-const server = http.createServer(app);
-
-server.listen(PORT, async () => {
+server.listen(PORT, () => {
   console.log(`🚀 Server running on ${PORT}`);
-
-  try {
-    await startLiveMessages();
-    console.log("🔥 Telegram listener started");
-  } catch (err) {
-    console.error("Telegram error:", err);
-  }
 });
