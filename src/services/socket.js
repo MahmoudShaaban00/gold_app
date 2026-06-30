@@ -1,6 +1,6 @@
 import { Server } from "socket.io";
 
-let io = null;
+let io;
 
 export const initSocket = (server) => {
   io = new Server(server, {
@@ -10,7 +10,7 @@ export const initSocket = (server) => {
   });
 
   io.on("connection", (socket) => {
-    console.log("✅ Client connected");
+    console.log("Client connected:", socket.id);
   });
 
   return io;

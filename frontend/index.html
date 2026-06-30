@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gold Live Price</title>
+</head>
+<body>
+
+    <h1>🔥 Live Gold Price</h1>
+
+    <h2 id="price">Loading...</h2>
+
+    <p id="time"></p>
+
+    <script>
+        const API_URL = "http://localhost:5000/api/telegram-cache/last-price";
+
+        async function loadPrice() {
+            try {
+                const response = await fetch(API_URL);
+                const result = await response.json();
+
+                if (!result.success) return;
+
+                document.getElementById("price").innerHTML =
+                    "💰 " + result.data.lastPrice;
+
+                const date = new Date(result.data.lastDate * 1000);
+
+                document.getElementById("time").innerHTML =
+                    "🕒 " + date.toLocaleString();
+
+                console.log(result.data);
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        // أول تحميل
+        loadPrice();
+
+        // تحديث كل 5 ثوانٍ
+        setInterval(loadPrice, 5000);
+    </script>
+
+</body>
+</html>
