@@ -5,7 +5,7 @@ import {
   getLastPrice,
   getTelegramCache,
   updateLastPrice,
-} from "../controllers/telegram.controller.js";
+} from "../controllers/telegramcache.js";
 
 const router = express.Router();
 

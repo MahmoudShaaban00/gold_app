@@ -10,7 +10,7 @@ import cors from "cors";
 import http from "http";
 
 import { connectDB } from "./config/dbconn.js";
-import telegramRoutes from "./routes/telegramCach.routes.js";
+import telegramRoutes from "./routes/telegramcache.routes.js";
 import { startLiveMessages } from "./services/telegram.js";
 
 const app = express();
@@ -27,7 +27,7 @@ connectDB();
 // ==========================
 // ROUTES (IMPORTANT)
 // ==========================
-app.use("/api/telegram-cache", telegramRoutes);
+app.use("/api/cache", telegramRoutes);
 
 // ==========================
 // TEST ROUTE
