@@ -7,15 +7,14 @@ import {
   updateSilverPrice
 } from "../controllers/silverPrices.js";
 
-import {authMiddleware , adminMiddleware} from "../middlewares/auth.middleware.js";
 
 const router = Router();
 
-router.post("/", authMiddleware, adminMiddleware, createSilverPrice);
-router.get("/", authMiddleware, getSilverPrices);
-router.get("/:id", authMiddleware, getSilverPriceById);
-router.delete("/:id", authMiddleware, adminMiddleware, deleteSilverPrice);
-router.put("/:id", authMiddleware, adminMiddleware, updateSilverPrice);
+router.post("/",  createSilverPrice);
+router.get("/",  getSilverPrices);
+router.get("/:id",  getSilverPriceById);
+router.delete("/:id", deleteSilverPrice);
+router.put("/:id", updateSilverPrice);
 
 
 export default router;
