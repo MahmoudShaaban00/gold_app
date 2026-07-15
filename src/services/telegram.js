@@ -187,16 +187,31 @@ export const startLiveMessages = async () => {
         console.log("📩 NEW MESSAGE:");
         console.log(msg.message);
 
-        const text = msg.message?.trim() || "";
+      const text = msg.message?.trim() || "";
 
-        const match = text.match(/[♦️🔹]?\s*(\d+(?:\.\d+)?)/);
 
-        if (!match) {
-          console.log("🚫 Advertisement or non-price message ignored");
-          return;
-        }
+// Ignore telegram links
+if (/https?:\/\/t\.me\/\S+/i.test(text)) {
+  console.log("🚫 Telegram link ignored");
+  return;
+}
 
-        const price = parseFloat(match[1]);
+
+// Extract price
+const match = text.match(
+  /(?:♦️|🔹)\s*(\d+(?:\.\d+)?)/
+);
+
+
+if (!match) {
+  console.log("🚫 No price found");
+  return;
+}
+
+
+const price = Number(match[1]);
+
+console.log("💰 Price:", price);
 
         await TelegramCache.findOneAndUpdate(
           {},
