@@ -10,7 +10,7 @@ import cors from "cors";
 import http from "http";
 
 import { connectDB } from "./config/dbconn.js";
-import telegramRoutes from "./routes/telegramcache.routes.js";
+import bootstrap from "./bootstarp/bootstrap.js";
 import { startLiveMessages } from "./services/telegram.js";
 
 
@@ -26,23 +26,32 @@ app.use(express.urlencoded({
 }));
 
 
+
+
 // ==========================
 // ROUTES
 // ==========================
 
-app.use(
-  "/api/cache",
-  telegramRoutes
-);
+bootstrap(app);
 
 
-app.get("/test", (req, res) => {
+
+// ==========================
+// TEST ROUTE
+// ==========================
+
+app.get("/test", (req,res)=>{
   res.json({
-    ok: true
+    ok:true
   });
 });
 
 
+
+
+// ==========================
+// SERVER
+// ==========================
 
 const PORT = process.env.PORT || 5000;
 
@@ -50,53 +59,61 @@ const server = http.createServer(app);
 
 
 
+
 // ==========================
-// START SERVER
+// START
 // ==========================
 
-const startServer = async () => {
+const startServer = async()=>{
 
-  try {
-
-    // 1- MongoDB
-    await connectDB();
-
-    console.log("✅ Mongo Connected");
+try{
 
 
-    // 2- Start Server
-    server.listen(PORT, () => {
-      console.log(
-        `🚀 Server running on ${PORT}`
-      );
-    });
+await connectDB();
+
+console.log("✅ Mongo Connected");
 
 
-    // 3- Telegram (background)
-    startLiveMessages()
-      .then(() => {
-        console.log(
-          "🔥 Telegram listener started"
-        );
-      })
-      .catch((err) => {
-        console.error(
-          "❌ Telegram Error:",
-          err.message
-        );
-      });
+
+server.listen(PORT,()=>{
+
+console.log(
+`🚀 Server running on ${PORT}`
+);
+
+});
 
 
-  } catch (error) {
 
-    console.error(
-      "❌ Startup Error:",
-      error.message
-    );
+startLiveMessages()
+.then(()=>{
 
-    process.exit(1);
+console.log(
+"🔥 Telegram listener started"
+);
 
-  }
+})
+.catch(err=>{
+
+console.error(
+"Telegram error:",
+err.message
+);
+
+});
+
+
+}
+catch(error){
+
+console.error(
+"Startup Error:",
+error.message
+);
+
+process.exit(1);
+
+}
 
 };
 
