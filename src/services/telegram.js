@@ -1,23 +1,25 @@
 import { TelegramClient } from "telegram";
 import { StringSession } from "telegram/sessions/index.js";
 import { Api } from "telegram";
+import { NewMessage } from "telegram/events/index.js";
+
 import { User } from "../models/user.js";
 import { TelegramCache } from "../models/TelegramCache.js";
 
 let client = null;
 
+
 // ==========================
 // INIT CLIENT
 // ==========================
 const getClient = async () => {
-  const apiId = Number(process.env.API_ID);
-  const apiHash = process.env.API_HASH;
 
   if (!client) {
+
     client = new TelegramClient(
       new StringSession(""),
-      apiId,
-      apiHash,
+      Number(process.env.API_ID),
+      process.env.API_HASH,
       {
         connectionRetries: 5,
       }
@@ -31,11 +33,15 @@ const getClient = async () => {
   return client;
 };
 
+
+
 // ==========================
 // SEND CODE
 // ==========================
 export const sendTelegramCode = async (phone) => {
+
   const tg = await getClient();
+
 
   const result = await tg.sendCode(
     {
@@ -45,205 +51,299 @@ export const sendTelegramCode = async (phone) => {
     phone
   );
 
+
   await User.findOneAndUpdate(
     { phone },
     {
       phone,
-      otp: {
+      otp:{
         phoneCodeHash: result.phoneCodeHash,
-        expiresAt: new Date(Date.now() + 5 * 60 * 1000),
-      },
+        expiresAt:new Date(Date.now()+5*60*1000)
+      }
     },
     {
-      upsert: true,
-      new: true,
+      upsert:true,
+      new:true
     }
   );
 
+
   return {
-    success: true,
-    message: "Code sent successfully",
+    success:true,
+    message:"Code sent successfully"
   };
 };
+
+
 
 // ==========================
 // VERIFY CODE
 // ==========================
-export const verifyTelegramCode = async (phone, code) => {
+export const verifyTelegramCode = async (
+  phone,
+  code
+)=>{
+
+
   const tg = await getClient();
 
-  const user = await User.findOne({ phone });
 
-  if (!user?.otp?.phoneCodeHash) {
+  const user = await User.findOne({
+    phone
+  });
+
+
+  if(!user?.otp?.phoneCodeHash){
     throw new Error("OTP not found");
   }
 
-  if (user.otp.expiresAt < new Date()) {
-    throw new Error("OTP expired");
-  }
+
 
   await tg.invoke(
     new Api.auth.SignIn({
-      phoneNumber: phone,
-      phoneCodeHash: user.otp.phoneCodeHash,
-      phoneCode: code,
+      phoneNumber:phone,
+      phoneCodeHash:user.otp.phoneCodeHash,
+      phoneCode:code
     })
   );
 
-  const sessionString = tg.session.save();
+
+
+  const session =
+    tg.session.save();
+
+
 
   await User.updateOne(
-    { phone },
     {
-      telegramSession: sessionString,
-      $unset: {
-        otp: 1,
-      },
+      phone
+    },
+    {
+      telegramSession:session,
+      $unset:{
+        otp:1
+      }
     }
   );
 
+
+
   return {
-    success: true,
-    session: sessionString,
+    success:true,
+    session
   };
+
 };
 
+
+
+
 // ==========================
-// LIVE TELEGRAM MESSAGES
+// START TELEGRAM LISTENER
+// ==========================
+// ==========================
+// START TELEGRAM LISTENER (5 SEC CACHE)
 // ==========================
 export const startLiveMessages = async () => {
+
   try {
+
     const user = await User.findOne({
       telegramSession: {
         $exists: true,
-        $ne: "",
-      },
+        $ne: ""
+      }
     });
 
+
     if (!user) {
-      throw new Error("No Telegram session found");
+      throw new Error("Telegram session not found");
     }
+
+
 
     const tg = new TelegramClient(
       new StringSession(user.telegramSession),
       Number(process.env.API_ID),
       process.env.API_HASH,
       {
-        connectionRetries: 5,
+        connectionRetries: 5
       }
     );
 
+
+
     await tg.connect();
 
+
+
     const authorized = await tg.isUserAuthorized();
+
 
     if (!authorized) {
       throw new Error("Telegram session expired");
     }
 
+
+
     const me = await tg.getMe();
 
-    console.log("👤 Logged User:", {
+
+    console.log("👤 Telegram User:", {
       id: me.id,
-      username: me.username,
-      firstName: me.firstName,
+      firstName: me.firstName
     });
 
-    const chat = await tg.getEntity(process.env.CHANNEL_USERNAME);
 
-    console.log("✅ Telegram connected");
 
-    console.log("📢 Listening Chat:", {
-      id: chat.id.toString(),
-      title: chat.title,
-      className: chat.className,
-      broadcast: chat.broadcast,
-      megagroup: chat.megagroup,
-    });
+    const channel = await tg.getEntity(
+      process.env.CHANNEL_USERNAME
+    );
 
-    const oldMessages = await tg.getMessages(chat, {
-      limit: 1,
-    });
 
-    let lastMessageId =
-      oldMessages.length > 0 ? oldMessages[0].id : 0;
 
-    console.log("📌 Last Message ID:", lastMessageId);
+    console.log("📢 Channel:", channel.title);
 
+
+
+    let lastMessageId = 0;
+
+
+
+    // ==========================
+    // CHECK EVERY 5 SECONDS
+    // ==========================
     setInterval(async () => {
-      try {
-        const messages = await tg.getMessages(chat, {
-          limit: 1,
-        });
 
-        if (!messages.length) return;
+      try {
+
+
+        const messages = await tg.getMessages(
+          channel,
+          {
+            limit: 1
+          }
+        );
+
+
+
+        if (!messages.length) {
+          return;
+        }
+
+
 
         const msg = messages[0];
 
-        if (msg.id === lastMessageId) return;
+
+
+        // prevent duplicate cache
+        if (msg.id === lastMessageId) {
+          return;
+        }
+
+
 
         lastMessageId = msg.id;
 
-        console.log("📩 NEW MESSAGE:");
-        console.log(msg.message);
-
-      const text = msg.message?.trim() || "";
 
 
-// Ignore telegram links
-if (/https?:\/\/t\.me\/\S+/i.test(text)) {
-  console.log("🚫 Telegram link ignored");
-  return;
-}
+        const text =
+          msg.message?.trim() || "";
 
 
-// Extract price
-const match = text.match(
-  /(?:♦️|🔹)\s*(\d+(?:\.\d+)?)/
-);
+
+        console.log(
+          "📩 Telegram Message:",
+          text
+        );
 
 
-if (!match) {
-  console.log("🚫 No price found");
-  return;
-}
+
+        const match = text.match(
+          /(?:♦️|🔹)\s*(\d+(?:\.\d+)?)/
+        );
 
 
-const price = Number(match[1]);
 
-console.log("💰 Price:", price);
+        if (!match) {
+
+          console.log(
+            "❌ No price found"
+          );
+
+          return;
+        }
+
+
+
+        const price = Number(match[1]);
+
+
 
         await TelegramCache.findOneAndUpdate(
           {},
           {
             lastMessageId: msg.id,
-            lastMessage: msg.message,
+            lastMessage: text,
             lastPrice: price,
-            lastDate: msg.date,
+            lastDate: new Date()
           },
           {
             upsert: true,
-            new: true,
+            new: true
           }
         );
 
-        console.log("✅ New Gold Price:", price);
 
-        console.log("✅ Cache Updated:", {
-          lastMessageId: msg.id,
-          lastPrice: price,
-          lastDate: msg.date,
-        });
-      } catch (err) {
-        console.error("Polling Error:", err.message);
+
+        console.log(
+          "✅ Gold Price Updated:",
+          {
+            id: msg.id,
+            price
+          }
+        );
+
+
+
+      } catch(error) {
+
+
+        console.log(
+          "Polling Error:",
+          error.message
+        );
+
+
       }
+
+
     }, 5000);
 
-    console.log("🔥 Telegram polling started (5s)");
+
+
+    console.log(
+      "🔥 Telegram polling started (5 seconds)"
+    );
+
+
 
     return tg;
-  } catch (err) {
-    console.error("Telegram Listener Error:", err);
-    throw err;
+
+
+
+  } catch(error) {
+
+
+    console.log(
+      "Telegram Listener Error:",
+      error.message
+    );
+
+
+    throw error;
+
   }
+
 };
