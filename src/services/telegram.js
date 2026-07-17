@@ -1,7 +1,6 @@
 import { TelegramClient } from "telegram";
 import { StringSession } from "telegram/sessions/index.js";
 import { Api } from "telegram";
-import { NewMessage } from "telegram/events/index.js";
 
 import { User } from "../models/user.js";
 import { TelegramCache } from "../models/TelegramCache.js";
@@ -138,37 +137,46 @@ export const verifyTelegramCode = async (
 
 
 
+
 // ==========================
 // START TELEGRAM LISTENER
-// ==========================
-// ==========================
-// START TELEGRAM LISTENER (5 SEC CACHE)
 // ==========================
 export const startLiveMessages = async () => {
 
   try {
 
+
     const user = await User.findOne({
-      telegramSession: {
-        $exists: true,
-        $ne: ""
+      telegramSession:{
+        $exists:true,
+        $ne:""
       }
     });
 
 
-    if (!user) {
-      throw new Error("Telegram session not found");
+
+    if(!user){
+      throw new Error(
+        "Telegram session not found"
+      );
     }
 
 
 
     const tg = new TelegramClient(
-      new StringSession(user.telegramSession),
+
+      new StringSession(
+        user.telegramSession
+      ),
+
       Number(process.env.API_ID),
+
       process.env.API_HASH,
+
       {
-        connectionRetries: 5
+        connectionRetries:5
       }
+
     );
 
 
@@ -177,32 +185,47 @@ export const startLiveMessages = async () => {
 
 
 
-    const authorized = await tg.isUserAuthorized();
+    const authorized =
+      await tg.isUserAuthorized();
 
 
-    if (!authorized) {
-      throw new Error("Telegram session expired");
+
+    if(!authorized){
+
+      throw new Error(
+        "Telegram session expired"
+      );
+
     }
 
 
 
-    const me = await tg.getMe();
-
-
-    console.log("👤 Telegram User:", {
-      id: me.id,
-      firstName: me.firstName
-    });
+    const me =
+      await tg.getMe();
 
 
 
-    const channel = await tg.getEntity(
-      process.env.CHANNEL_USERNAME
+    console.log(
+      "👤 Telegram User:",
+      {
+        id:me.id,
+        firstName:me.firstName
+      }
     );
 
 
 
-    console.log("📢 Channel:", channel.title);
+    const channel =
+      await tg.getEntity(
+        process.env.CHANNEL_USERNAME
+      );
+
+
+
+    console.log(
+      "📢 Channel:",
+      channel.title
+    );
 
 
 
@@ -210,37 +233,34 @@ export const startLiveMessages = async () => {
 
 
 
-    // ==========================
-    // CHECK EVERY 5 SECONDS
-    // ==========================
-    setInterval(async () => {
-
-      try {
+    setInterval(async()=>{
 
 
-        const messages = await tg.getMessages(
-          channel,
-          {
-            limit: 1
-          }
-        );
+      try{
+
+
+        const messages =
+          await tg.getMessages(
+            channel,
+            {
+              limit:1
+            }
+          );
 
 
 
-        if (!messages.length) {
+        if(!messages.length)
           return;
-        }
 
 
 
-        const msg = messages[0];
+        const msg =
+          messages[0];
 
 
 
-        // prevent duplicate cache
-        if (msg.id === lastMessageId) {
+        if(msg.id === lastMessageId)
           return;
-        }
 
 
 
@@ -260,13 +280,28 @@ export const startLiveMessages = async () => {
 
 
 
-        const match = text.match(
-          /(?:♦️|🔹)\s*(\d+(?:\.\d+)?)/
-        );
+        // skip telegram links
+        if(
+          /https?:\/\/t\.me\/\S+/i.test(text)
+        ){
+
+          console.log(
+            "🚫 Telegram link ignored"
+          );
+
+          return;
+        }
 
 
 
-        if (!match) {
+        const match =
+          text.match(
+            /(?:♦️|🔹)\s*(\d+(?:\.\d+)?)/
+          );
+
+
+
+        if(!match){
 
           console.log(
             "❌ No price found"
@@ -277,22 +312,27 @@ export const startLiveMessages = async () => {
 
 
 
-        const price = Number(match[1]);
+        const price =
+          Number(match[1]);
 
 
 
         await TelegramCache.findOneAndUpdate(
+
           {},
+
           {
-            lastMessageId: msg.id,
-            lastMessage: text,
-            lastPrice: price,
-            lastDate: new Date()
+            lastMessageId:msg.id,
+            lastMessage:text,
+            lastPrice:price,
+            lastDate:new Date()
           },
+
           {
-            upsert: true,
-            new: true
+            upsert:true,
+            new:true
           }
+
         );
 
 
@@ -300,26 +340,24 @@ export const startLiveMessages = async () => {
         console.log(
           "✅ Gold Price Updated:",
           {
-            id: msg.id,
+            id:msg.id,
             price
           }
         );
 
 
-
-      } catch(error) {
-
+      }
+      catch(error){
 
         console.log(
           "Polling Error:",
           error.message
         );
 
-
       }
 
 
-    }, 5000);
+    },5000);
 
 
 
@@ -332,8 +370,8 @@ export const startLiveMessages = async () => {
     return tg;
 
 
-
-  } catch(error) {
+  }
+  catch(error){
 
 
     console.log(
