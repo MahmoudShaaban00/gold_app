@@ -1,9 +1,11 @@
 import { User } from "../models/user.js";
 import jwt from "jsonwebtoken";
-import { sendTelegramCode } from "../services/telegram.js";
+import {sendTelegramCode} from "../services/telegram.js";
 
-
-export const login = async (req, res) => {
+// ======================================
+// LOGIN
+// ======================================
+export const signin = async (req, res) => {
   try {
     const { name, phone } = req.body;
 
@@ -14,9 +16,9 @@ export const login = async (req, res) => {
       });
     }
 
-    // ==========================
+    // ======================================
     // ADMINS
-    // ==========================
+    // ======================================
     const admins = [
       {
         phone: "01027070200",
@@ -34,14 +36,14 @@ export const login = async (req, res) => {
         admin.name === name
     );
 
-    // ==========================
+    // ======================================
     // FIND USER
-    // ==========================
+    // ======================================
     let user = await User.findOne({ phone });
 
-    // ==========================
-    // CREATE NEW USER
-    // ==========================
+    // ======================================
+    // CREATE USER
+    // ======================================
     if (!user) {
       user = await User.create({
         name,
@@ -49,56 +51,27 @@ export const login = async (req, res) => {
         role: isAdmin ? "admin" : "user",
       });
     } else {
-      // ==========================
-      // ADMIN
-      // ==========================
       if (isAdmin) {
         user.name = name;
         user.role = "admin";
         await user.save();
       } else {
-        // ==========================
-        // NORMAL USER
-        // ==========================
         if (user.name !== name) {
           return res.status(400).json({
             success: false,
-            message:
-              "This phone number belongs to another user",
+            message: "This phone number belongs to another user",
           });
         }
       }
     }
 
-    // ==========================
-    // ADMIN LOGIN (NO OTP)
-    // ==========================
-    if (isAdmin) {
-      const token = jwt.sign(
-        {
-          userId: user._id,
-          role: "admin",
-        },
-        process.env.JWT_SECRET,
-        {
-          expiresIn: "1y",
-        }
-      );
+        await sendTelegramCode(phone);
 
-      return res.status(200).json({
-        success: true,
-        message: "Admin login successful",
-        token,
-        user,
-      });
-    }
 
-    // ==========================
-    // SEND OTP TO NORMAL USER
-    // ==========================
-    await sendTelegramCode(phone);
-
-    const token = jwt.sign(
+    // ======================================
+    // ACCESS TOKEN
+    // ======================================
+    const accessToken = jwt.sign(
       {
         userId: user._id,
         role: user.role,
@@ -109,10 +82,24 @@ export const login = async (req, res) => {
       }
     );
 
+    // ======================================
+    // REFRESH TOKEN
+    // ======================================
+    const refreshToken = jwt.sign(
+      {
+        userId: user._id,
+      },
+      process.env.JWT_REFRESH_SECRET,
+      {
+        expiresIn: "1y",
+      }
+    );
+
     return res.status(200).json({
       success: true,
-      message: "OTP sent to Telegram",
-      token,
+      message: "Login successful",
+      accessToken,
+      refreshToken,
       user,
     });
   } catch (error) {
@@ -123,18 +110,83 @@ export const login = async (req, res) => {
   }
 };
 
+// ======================================
+// REFRESH TOKEN
+// ======================================
+export const refreshToken = async (req, res) => {
+  try {
+    const { refreshToken } = req.body;
 
+    if (!refreshToken) {
+      return res.status(401).json({
+        success: false,
+        message: "Refresh token is required",
+      });
+    }
+
+    const decoded = jwt.verify(
+      refreshToken,
+      process.env.JWT_REFRESH_SECRET
+    );
+
+    const user = await User.findById(decoded.userId);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    const newAccessToken = jwt.sign(
+      {
+        userId: user._id,
+        role: user.role,
+      },
+      process.env.JWT_SECRET,
+      {
+        expiresIn: "1y",
+      }
+    );
+
+    const newRefreshToken = jwt.sign(
+      {
+        userId: user._id,
+      },
+      process.env.JWT_REFRESH_SECRET,
+      {
+        expiresIn: "1y",
+      }
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "Token refreshed successfully",
+      accessToken: newAccessToken,
+      refreshToken: newRefreshToken,
+    });
+  } catch (error) {
+    return res.status(401).json({
+      success: false,
+      message: "Invalid or expired refresh token",
+    });
+  }
+};
+
+// ======================================
+// GET ALL USERS
+// ======================================
 export const getAllUsers = async (req, res) => {
   try {
     const users = await User.find().select("-password");
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       count: users.length,
       users,
     });
   } catch (error) {
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: error.message,
     });
