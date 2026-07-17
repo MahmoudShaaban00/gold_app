@@ -25,8 +25,8 @@ export const signin = async (req, res) => {
     name: "عمرو العربى",
   },
   {
-    phone: "+201557070595",
-    name: "العربي",
+      phone: "+201557070595",
+      name: "العربي",
   },
 ];
     const isAdmin = admins.some(
