@@ -19,17 +19,16 @@ export const signin = async (req, res) => {
     // ======================================
     // ADMINS
     // ======================================
-    const admins = [
-      {
-        phone: "01027070200",
-        name: "عمرو العربى",
-      },
-      {
-        phone: "01557070595",
-        name: "العربي",
-      },
-    ];
-
+   const admins = [
+  {
+    phone: "+201027070200",
+    name: "عمرو العربى",
+  },
+  {
+    phone: "+201557070595",
+    name: "العربي",
+  },
+];
     const isAdmin = admins.some(
       (admin) =>
         admin.phone === phone &&
