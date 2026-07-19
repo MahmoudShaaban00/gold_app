@@ -2,24 +2,50 @@ import jwt from "jsonwebtoken";
 
 export const authMiddleware = (req, res, next) => {
   try {
-    const token = req.headers.authorization?.split(" ")[1];
+    const authHeader = req.headers.authorization;
 
-    if (!token) {
+    // التحقق من وجود Authorization Header
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
       return res.status(401).json({
         success: false,
-        message: "No token",
+        message: "Access token required",
       });
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    // استخراج التوكن
+    const accessToken = authHeader.split(" ")[1];
 
-    req.user = decoded; // 👈 هنا المهم
+    // للتأكد مما يتم استقباله
+    console.log("Authorization:", req.headers.authorization);
+
+    // التحقق من صحة التوكن
+    const decoded = jwt.verify(accessToken, process.env.JWT_SECRET);
+
+    console.log("Decoded Token:", decoded);
+
+    req.user = decoded;
 
     next();
   } catch (error) {
-    return res.status(401).json({
+    console.error("JWT Error:", error);
+
+    if (error.name === "TokenExpiredError") {
+      return res.status(401).json({
+        success: false,
+        message: "Access token expired",
+      });
+    }
+
+    if (error.name === "JsonWebTokenError") {
+      return res.status(401).json({
+        success: false,
+        message: error.message, // سيطبع السبب الحقيقي
+      });
+    }
+
+    return res.status(500).json({
       success: false,
-      message: "Invalid token",
+      message: error.message,
     });
   }
 };
@@ -42,6 +68,8 @@ export const adminMiddleware = (req, res, next) => {
 
     next();
   } catch (error) {
+    console.error(error);
+
     return res.status(500).json({
       success: false,
       message: error.message,

@@ -3,11 +3,13 @@ import { createProduct, getProducts,getProductById,deleteProduct,updateProduct} 
 
 import { upload } from "../middlewares/upload.js";
 
+import {authMiddleware , adminMiddleware} from  "../middlewares/auth.middleware.js"
+
 const router = Router();
 console.log("Product Routes Loaded");
 
 router.post("/", upload.single("image"), createProduct);
-router.get("/", getProducts);
+router.get("/",authMiddleware, getProducts);
 
 router.get("/:id", getProductById);
 

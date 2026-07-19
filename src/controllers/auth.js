@@ -70,37 +70,39 @@ export const signin = async (req, res) => {
     // ======================================
     // ACCESS TOKEN
     // ======================================
-    const accessToken = jwt.sign(
-      {
-        userId: user._id,
-        role: user.role,
-      },
-      process.env.JWT_SECRET,
-      {
-        expiresIn: "1y",
-      }
-    );
+  const accessToken = jwt.sign(
+  {
+    userId: user._id,
+    role: user.role,
+  },
+  process.env.JWT_SECRET,
+  {
+    expiresIn: "1y",
+  }
+);
 
-    // ======================================
-    // REFRESH TOKEN
-    // ======================================
-    const refreshToken = jwt.sign(
-      {
-        userId: user._id,
-      },
-      process.env.JWT_REFRESH_SECRET,
-      {
-        expiresIn: "1y",
-      }
-    );
+const refreshToken = jwt.sign(
+  {
+    userId: user._id,
+  },
+  process.env.JWT_REFRESH_SECRET,
+  {
+    expiresIn: "1y",
+  }
+);
 
-    return res.status(200).json({
-      success: true,
-      message: "Login successful",
-      accessToken,
-      refreshToken,
-      user,
-    });
+// اطبع القيم هنا
+console.log("Access Token:", accessToken);
+console.log("Refresh Token:", refreshToken);
+console.log("JWT_SECRET:", process.env.JWT_SECRET);
+
+return res.status(200).json({
+  success: true,
+  message: "Login successful",
+  accessToken,
+  refreshToken,
+  user,
+});
   } catch (error) {
     return res.status(500).json({
       success: false,
@@ -170,6 +172,7 @@ export const refreshToken = async (req, res) => {
       message: "Invalid or expired refresh token",
     });
   }
+
 };
 
 // ======================================
