@@ -8,12 +8,12 @@ import {authMiddleware , adminMiddleware} from  "../middlewares/auth.middleware.
 const router = Router();
 console.log("Product Routes Loaded");
 
-router.post("/", upload.single("image"), createProduct);
+router.post("/",authMiddleware, adminMiddleware, upload.single("image"), createProduct);
 router.get("/",authMiddleware, getProducts);
 
-router.get("/:id", getProductById);
+router.get("/:id", authMiddleware, getProductById);
 
-router.delete("/:id", deleteProduct);
-router.put("/:id", upload.single("image"), updateProduct);
+router.delete("/:id", authMiddleware, adminMiddleware, deleteProduct);
+router.put("/:id", authMiddleware, adminMiddleware, upload.single("image"), updateProduct);
 
 export default router;
