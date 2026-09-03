@@ -6,6 +6,7 @@ import {
   getTelegramCache,
   updateLastPrice,
 } from "../controllers/telegramcache.js";
+import { authMiddleware, adminMiddleware } from "../middlewares/auth.middleware.js";
 
 const router = express.Router();
 
@@ -25,6 +26,6 @@ router.get("/cache", getTelegramCache);
  * PUT /api/telegram/update-price
  * تحديث السعر يدويًا (اختياري)
  */
-router.put("/update-price", updateLastPrice);
+router.put("/update-price", authMiddleware, adminMiddleware, updateLastPrice);
 
 export default router;

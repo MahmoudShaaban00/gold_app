@@ -15,13 +15,10 @@ export const authMiddleware = (req, res, next) => {
     // استخراج التوكن
     const accessToken = authHeader.split(" ")[1];
 
-    // للتأكد مما يتم استقباله
-    console.log("Authorization:", req.headers.authorization);
 
     // التحقق من صحة التوكن
     const decoded = jwt.verify(accessToken, process.env.JWT_SECRET);
 
-    console.log("Decoded Token:", decoded);
 
     req.user = decoded;
 

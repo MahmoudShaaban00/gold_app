@@ -1,6 +1,5 @@
 import { User } from "../models/user.js";
 import jwt from "jsonwebtoken";
-import {sendTelegramCode} from "../services/telegram.js";
 
 // ======================================
 // LOGIN
@@ -64,9 +63,6 @@ export const signin = async (req, res) => {
       }
     }
 
-        await sendTelegramCode(phone);
-
-
     // ======================================
     // ACCESS TOKEN
     // ======================================
@@ -91,10 +87,6 @@ const refreshToken = jwt.sign(
   }
 );
 
-// اطبع القيم هنا
-console.log("Access Token:", accessToken);
-console.log("Refresh Token:", refreshToken);
-console.log("JWT_SECRET:", process.env.JWT_SECRET);
 
 return res.status(200).json({
   success: true,

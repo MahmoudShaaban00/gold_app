@@ -1,141 +1,71 @@
 import { TelegramClient } from "telegram";
 import { StringSession } from "telegram/sessions/index.js";
-import { Api } from "telegram";
 
-import { User } from "../models/user.js";
+import fs from "fs";
+
 import { TelegramCache } from "../models/TelegramCache.js";
 
-let client = null;
 
 
 // ==========================
-// INIT CLIENT
+// DEDICATED APP SESSION
 // ==========================
-const getClient = async () => {
+// The price-feed client authenticates with ONE session owned by the
+// application, never with a customer's session.
+//
+// Resolution order:
+//   1) process.env.TELEGRAM_SESSION
+//   2) the file named by process.env.TELEGRAM_SESSION_FILE
+//      (a KEY=VALUE file holding TELEGRAM_SESSION=...)
+//
+// The value is never logged. If it cannot be resolved this throws -
+// it must NOT fall back to User.telegramSession.
+const getAppSession = () => {
 
-  if (!client) {
+  const direct = process.env.TELEGRAM_SESSION;
 
-    client = new TelegramClient(
-      new StringSession(""),
-      Number(process.env.API_ID),
-      process.env.API_HASH,
-      {
-        connectionRetries: 5,
-      }
+  if (direct && direct.trim()) {
+    return direct.trim();
+  }
+
+  const file = process.env.TELEGRAM_SESSION_FILE;
+
+  if (!file) {
+    throw new Error(
+      "Dedicated Telegram session not configured: set TELEGRAM_SESSION or TELEGRAM_SESSION_FILE"
     );
-
-    await client.connect();
-
-    console.log("✅ Client connected");
   }
 
-  return client;
-};
-
-
-
-// ==========================
-// SEND CODE
-// ==========================
-export const sendTelegramCode = async (phone) => {
-
-  const tg = await getClient();
-
-
-  const result = await tg.sendCode(
-    {
-      apiId: Number(process.env.API_ID),
-      apiHash: process.env.API_HASH,
-    },
-    phone
-  );
-
-
-  await User.findOneAndUpdate(
-    { phone },
-    {
-      phone,
-      otp:{
-        phoneCodeHash: result.phoneCodeHash,
-        expiresAt:new Date(Date.now()+5*60*1000)
-      }
-    },
-    {
-      upsert:true,
-      new:true
-    }
-  );
-
-
-  return {
-    success:true,
-    message:"Code sent successfully"
-  };
-};
-
-
-
-// ==========================
-// VERIFY CODE
-// ==========================
-export const verifyTelegramCode = async (
-  phone,
-  code
-)=>{
-
-
-  const tg = await getClient();
-
-
-  const user = await User.findOne({
-    phone
-  });
-
-
-  if(!user?.otp?.phoneCodeHash){
-    throw new Error("OTP not found");
+  if (!fs.existsSync(file)) {
+    throw new Error(
+      "Dedicated Telegram session file not found at TELEGRAM_SESSION_FILE"
+    );
   }
 
+  let contents;
 
+  try {
+    contents = fs.readFileSync(file, "utf8");
+  } catch (error) {
+    throw new Error(
+      "Dedicated Telegram session file could not be read: " + error.code
+    );
+  }
 
-  await tg.invoke(
-    new Api.auth.SignIn({
-      phoneNumber:phone,
-      phoneCodeHash:user.otp.phoneCodeHash,
-      phoneCode:code
-    })
+  const match = contents.match(
+    /^\s*TELEGRAM_SESSION\s*=\s*(.+)\s*$/m
   );
 
+  const value = match && match[1] ? match[1].trim() : "";
 
+  if (!value) {
+    throw new Error(
+      "Dedicated Telegram session file does not contain a TELEGRAM_SESSION value"
+    );
+  }
 
-  const session =
-    tg.session.save();
-
-
-
-  await User.updateOne(
-    {
-      phone
-    },
-    {
-      telegramSession:session,
-      $unset:{
-        otp:1
-      }
-    }
-  );
-
-
-
-  return {
-    success:true,
-    session
-  };
-
+  return value;
 };
-
-
-
 
 
 // ==========================
@@ -146,27 +76,17 @@ export const startLiveMessages = async () => {
   try {
 
 
-    const user = await User.findOne({
-      telegramSession:{
-        $exists:true,
-        $ne:""
-      }
-    });
-
-
-
-    if(!user){
-      throw new Error(
-        "Telegram session not found"
-      );
-    }
+    // Dedicated application session - NOT a customer's session.
+    // getAppSession() throws if it cannot be resolved; there is
+    // deliberately no fallback to User.telegramSession.
+    const appSession = getAppSession();
 
 
 
     const tg = new TelegramClient(
 
       new StringSession(
-        user.telegramSession
+        appSession
       ),
 
       Number(process.env.API_ID),
