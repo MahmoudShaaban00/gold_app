@@ -1,5 +1,6 @@
 import { User } from "../models/user.js";
 import jwt from "jsonwebtoken";
+import { namesMatch } from "../utils/normalizeArabicName.js";
 
 // ======================================
 // LOGIN
@@ -54,10 +55,14 @@ export const signin = async (req, res) => {
         user.role = "admin";
         await user.save();
       } else {
-        if (user.name !== name) {
+        // Compare names ignoring Arabic typing variations (ta marbuta vs
+        // ha, alef forms, diacritics, whitespace). The phone still
+        // identifies the account; this only relaxes the name check.
+        if (!namesMatch(user.name, name)) {
           return res.status(400).json({
             success: false,
-            message: "This phone number belongs to another user",
+            message:
+              "The name does not match the name registered with this phone number.",
           });
         }
       }
