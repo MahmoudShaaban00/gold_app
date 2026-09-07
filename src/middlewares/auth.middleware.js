@@ -34,15 +34,18 @@ export const authMiddleware = (req, res, next) => {
     }
 
     if (error.name === "JsonWebTokenError") {
+      // The library message ("jwt malformed", "invalid signature",
+      // "jwt signature is required") tells an attacker which part of the
+      // token was wrong. The real reason stays in the log above.
       return res.status(401).json({
         success: false,
-        message: error.message, // سيطبع السبب الحقيقي
+        message: "Invalid access token",
       });
     }
 
     return res.status(500).json({
       success: false,
-      message: error.message,
+      message: "Internal server error",
     });
   }
 };
@@ -65,11 +68,11 @@ export const adminMiddleware = (req, res, next) => {
 
     next();
   } catch (error) {
-    console.error(error);
+    console.error("[auth] admin check failed:", error);
 
     return res.status(500).json({
       success: false,
-      message: error.message,
+      message: "Internal server error",
     });
   }
 };

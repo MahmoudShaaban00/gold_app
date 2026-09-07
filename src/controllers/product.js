@@ -35,9 +35,11 @@ export const createProduct = async (req, res) => {
       data: product,
     });
   } catch (error) {
+    console.error("[product] request failed:", error);
+
     res.status(500).json({
       success: false,
-      message: error.message,
+      message: "Internal server error",
     });
   }
 };
@@ -54,8 +56,10 @@ export const getProducts = async (req, res) => {
       data: products,
     });
   } catch (error) {
+    console.error("[product] request failed:", error);
+
     res.status(500).json({
-      message: error.message,
+      message: "Internal server error",
     });
   }
 };
@@ -77,8 +81,10 @@ export const getProductById = async (req, res) => {
       data: product,
     });
   } catch (error) {
+    console.error("[product] request failed:", error);
+
     res.status(500).json({
-      message: error.message,
+      message: "Internal server error",
     });
   }
 };
@@ -100,8 +106,10 @@ export const deleteProduct = async (req, res) => {
       message: "Product deleted successfully",
     });
   } catch (error) {
+    console.error("[product] request failed:", error);
+
     res.status(500).json({
-      message: error.message,
+      message: "Internal server error",
     });
   }
 };
@@ -147,9 +155,11 @@ export const updateProduct = async (req, res) => {
       data: product,
     });
   } catch (error) {
+    console.error("[product] request failed:", error);
+
     res.status(500).json({
       success: false,
-      message: error.message,
+      message: "Internal server error",
     });
   }
 };

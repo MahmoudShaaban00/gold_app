@@ -48,9 +48,11 @@ export const createSilverPrice = async (req, res) => {
       data,
     });
   } catch (error) {
+    console.error("[silverPrice] request failed:", error);
+
     res.status(500).json({
       success: false,
-      message: error.message,
+      message: "Internal server error",
     });
   }
 };
@@ -70,9 +72,11 @@ export const getSilverPrices = async (req, res) => {
       data,
     });
   } catch (error) {
+    console.error("[silverPrice] request failed:", error);
+
     res.status(500).json({
       success: false,
-      message: error.message,
+      message: "Internal server error",
     });
   }
 };
@@ -98,9 +102,11 @@ export const getSilverPriceById = async (req, res) => {
       data: silverPrice,
     });
   } catch (error) {
+    console.error("[silverPrice] request failed:", error);
+
     res.status(500).json({
       success: false,
-      message: error.message,
+      message: "Internal server error",
     });
   }
 };
@@ -167,9 +173,11 @@ export const updateSilverPrice = async (req, res) => {
       data: silverPrice,
     });
   } catch (error) {
+    console.error("[silverPrice] request failed:", error);
+
     res.status(500).json({
       success: false,
-      message: error.message,
+      message: "Internal server error",
     });
   }
 };
@@ -195,9 +203,11 @@ export const deleteSilverPrice = async (req, res) => {
       message: "تم حذف سعر الفضة بنجاح",
     });
   } catch (error) {
+    console.error("[silverPrice] request failed:", error);
+
     res.status(500).json({
       success: false,
-      message: error.message,
+      message: "Internal server error",
     });
   }
 };

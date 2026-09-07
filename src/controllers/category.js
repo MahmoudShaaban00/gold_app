@@ -22,8 +22,10 @@ export const createCategory = async (req, res) => {
       data: category,
     });
   } catch (error) {
+    console.error("[category] request failed:", error);
+
     res.status(500).json({
-      message: error.message,
+      message: "Internal server error",
     });
   }
 };
@@ -37,8 +39,10 @@ export const getCategories = async (req, res) => {
       data: categories,
     });
   } catch (error) {
+    console.error("[category] request failed:", error);
+
     res.status(500).json({
-      message: error.message,
+      message: "Internal server error",
     });
   }
 };
@@ -61,9 +65,11 @@ export const getCategoryById = async (req, res) => {
       data: category,
     });
   } catch (error) {
+    console.error("[category] request failed:", error);
+
     return res.status(500).json({
       success: false,
-      message: error.message,
+      message: "Internal server error",
     });
   }
 };
@@ -108,9 +114,11 @@ export const updateCategory = async (req, res) => {
       data: category,
     });
   } catch (error) {
+    console.error("[category] request failed:", error);
+
     res.status(500).json({
       success: false,
-      message: error.message,
+      message: "Internal server error",
     });
   }
 };
@@ -133,8 +141,10 @@ export const deleteCategory = async (req, res) => {
       message: "تم حذف القسم بنجاح",
     });
   } catch (error) {
+    console.error("[category] request failed:", error);
+
     res.status(500).json({
-      message: error.message,
+      message: "Internal server error",
     });
   }
 };

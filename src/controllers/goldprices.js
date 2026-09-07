@@ -30,9 +30,11 @@ export const createGoldPrice = async (req, res) => {
       data: goldPrice,
     });
   } catch (error) {
+    console.error("[goldPrice] request failed:", error);
+
     res.status(500).json({
       success: false,
-      message: error.message,
+      message: "Internal server error",
     });
   }
 };
@@ -48,9 +50,11 @@ export const getGoldPrice = async (req, res) => {
       data: prices,
     });
   } catch (error) {
+    console.error("[goldPrice] request failed:", error);
+
     res.status(500).json({
       success: false,
-      message: error.message,
+      message: "Internal server error",
     });
   }
 };
@@ -73,9 +77,11 @@ export const getGoldPriceById = async (req, res) => {
       data: goldPrice,
     });
   } catch (error) {
+    console.error("[goldPrice] request failed:", error);
+
     res.status(500).json({
       success: false,
-      message: error.message,
+      message: "Internal server error",
     });
   }
 };
@@ -98,9 +104,11 @@ export const deleteGoldPrice = async (req, res) => {
       message: "تم حذف سعر الذهب بنجاح",
     });
   } catch (error) {
+    console.error("[goldPrice] request failed:", error);
+
     res.status(500).json({
       success: false,
-      message: error.message,
+      message: "Internal server error",
     });
   }
 };
