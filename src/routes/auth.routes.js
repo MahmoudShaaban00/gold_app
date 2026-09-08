@@ -1,7 +1,7 @@
 import express from "express";
-import { signin, refreshToken, getAllUsers} from "../controllers/auth.js";
+import { signin, refreshToken, getAllUsers, deleteAccount } from "../controllers/auth.js";
 import { authMiddleware, adminMiddleware } from "../middlewares/auth.middleware.js";
-import { validateSignin } from "../middlewares/validate.js";
+import { validateSignin, validateAccountDeletion } from "../middlewares/validate.js";
 
 const router = express.Router();
 
@@ -10,5 +10,10 @@ const router = express.Router();
 router.post("/signin", validateSignin, signin);
 router.post("/refresh-token", refreshToken);
 router.get("/users", authMiddleware, adminMiddleware, getAllUsers);
+
+// Self-service account deletion. authMiddleware runs first so the account
+// being deleted is the one named by the access token; the { name, phone }
+// body only confirms it.
+router.delete("/account", authMiddleware, validateAccountDeletion, deleteAccount);
 
 export default router;

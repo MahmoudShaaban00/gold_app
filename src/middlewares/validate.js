@@ -36,7 +36,12 @@ const reject = (res, message) =>
     message,
   });
 
-export const validateSignin = (req, res, next) => {
+/**
+ * Shared name + phone body check. Used by signin and by account deletion:
+ * both accept exactly the same two fields under the same rules, so they share
+ * one implementation rather than drifting apart.
+ */
+const validateNameAndPhone = (req, res, next) => {
   // req.body is undefined when no JSON body was sent at all.
   const body = req.body ?? {};
 
@@ -94,5 +99,12 @@ export const validateSignin = (req, res, next) => {
 
   return next();
 };
+
+export const validateSignin = validateNameAndPhone;
+
+// DELETE /api/auth/account carries the same { name, phone } body, so a
+// malformed request is rejected here before the controller loads the
+// authenticated account.
+export const validateAccountDeletion = validateNameAndPhone;
 
 export default validateSignin;

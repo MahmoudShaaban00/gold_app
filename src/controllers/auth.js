@@ -1,6 +1,8 @@
 import { User } from "../models/user.js";
 import jwt from "jsonwebtoken";
 import { namesMatch } from "../utils/normalizeArabicName.js";
+import { phonesMatch } from "../utils/normalizePhone.js";
+import mongoose from "mongoose";
 
 // ======================================
 // LOGIN
@@ -187,6 +189,76 @@ export const getAllUsers = async (req, res) => {
       success: true,
       count: users.length,
       users,
+    });
+  } catch (error) {
+    console.error("[auth] request failed:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+};
+// ======================================
+// DELETE OWN ACCOUNT
+// ======================================
+// DELETE /api/auth/account
+//
+// The account that gets deleted is ALWAYS the one identified by the access
+// token. The { name, phone } body is a confirmation step only: it is checked
+// against the token's own account and is never used to look an account up, so
+// no combination of body values can reach another user's row.
+//
+// Nothing from the body (or the stored account) is logged.
+export const deleteAccount = async (req, res) => {
+  try {
+    const userId = req.user?.userId;
+
+    // authMiddleware guarantees a verified token, but a token minted without
+    // a userId claim must not fall through to a broad query.
+    if (!userId || !mongoose.isValidObjectId(userId)) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid access token",
+      });
+    }
+
+    const { name, phone } = req.body;
+
+    const user = await User.findById(userId);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    // Both checks share one response so the reply never reveals which of the
+    // two values was wrong.
+    if (!namesMatch(user.name, name) || !phonesMatch(user.phone, phone)) {
+      return res.status(400).json({
+        success: false,
+        message: "The provided details do not match this account",
+      });
+    }
+
+    // Scoped to the authenticated _id. No other collection references User,
+    // so there is nothing owned by this account to cascade to: products,
+    // categories, gold/silver prices and the Telegram cache are shared
+    // application data and are deliberately left untouched.
+    const result = await User.deleteOne({ _id: user._id });
+
+    if (result.deletedCount !== 1) {
+      return res.status(500).json({
+        success: false,
+        message: "Internal server error",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Account deleted successfully",
     });
   } catch (error) {
     console.error("[auth] request failed:", error);
