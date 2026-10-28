@@ -30,6 +30,28 @@ export const signin = async (req, res) => {
       phone: "+201557070595",
       name: "العربي",
   },
+  {
+    phone: "+201012345678",
+    name: "محمد أحمد",
+  },
+  {
+    phone: "+201012345679",
+    name: "محمد حسن",
+  },
+
+  {
+    phone: "+201012345670",
+    name: " أحمد علي",
+  },
+  {
+    phone: "+201012345671",
+    name: "محمد مصطفى",
+  },
+  {
+    phone: "+201012345672",
+    name: "محمد خضر",
+    
+  },
 ];
     const isAdmin = admins.some(
       (admin) =>
